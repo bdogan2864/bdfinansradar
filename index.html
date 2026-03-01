@@ -529,7 +529,11 @@ function renderSignals(){
 async function clearSigs(){signals=[];renderSignals()}
 
 // ── TELEGRAM ──────────────────────────────────────────────────────────────
-function tgConfig(){return{token:document.getElementById('tgTok').value.trim(),chat_id:document.getElementById('tgCid').value.trim()}}
+function tgConfig(){
+  const token = document.getElementById('tgTok').value.trim() || '8711751236:AAFraLBuKpefOQSzofk3bqd1jarQF2PtDK8';
+  const chat_id = document.getElementById('tgCid').value.trim() || '1919345973';
+  return {token, chat_id};
+}
 function log(msg,type='i'){
   const el=document.getElementById('tgLog');
   const cls=type==='ok'?'log-ok':type==='err'?'log-err':'log-i';
