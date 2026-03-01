@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BD FİNANS RADAR</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05080f;--bg2:#090e18;--bg3:#0f1520;--border:#192030;
+  --accent:#00d4ff;--accent2:#7b61ff;
+  --bull:#00e676;--bear:#ff3d5a;--neutral:#ffab00;
+  --text:#dde4f0;--sub:#8494aa;--card:#0b1019;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* noise + grid bg */
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,212,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.025) 1px,transparent 1px);
+  background-size:44px 44px;pointer-events:none;z-index:0}
+
+/* ── HEADER ── */
+header{position:sticky;top:0;z-index:200;
+  background:rgba(5,8,15,.9);backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:60px}
+.logo{font-size:18px;font-weight:800;letter-spacing:-1px}
+.logo b{color:var(--accent)}
+.hbar{display:flex;align-items:center;gap:16px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--bull);animation:pulse 1.4s infinite}
+.live-pill{display:flex;align-items:center;gap:6px;font-size:11px;font-family:'Space Mono',monospace;
+  color:var(--bull);background:rgba(0,230,118,.07);border:1px solid rgba(0,230,118,.18);
+  padding:3px 10px;border-radius:20px}
+.ts{font-family:'Space Mono',monospace;font-size:10px;color:var(--sub)}
+.server-status{font-family:'Space Mono',monospace;font-size:10px;padding:3px 9px;border-radius:4px;
+  background:rgba(255,171,0,.08);border:1px solid rgba(255,171,0,.2);color:var(--neutral)}
+.server-status.ok{background:rgba(0,230,118,.07);border-color:rgba(0,230,118,.2);color:var(--bull)}
+.server-status.err{background:rgba(255,61,90,.07);border-color:rgba(255,61,90,.2);color:var(--bear)}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,230,118,.4)}50%{opacity:.5;box-shadow:0 0 0 5px transparent}}
+
+/* ── MAIN ── */
+main{position:relative;z-index:1;padding:24px 28px;max-width:1900px;margin:0 auto}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;margin-bottom:24px;border-bottom:1px solid var(--border)}
+.tab{background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;
+  padding:9px 18px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;
+  letter-spacing:.8px;text-transform:uppercase;color:var(--sub);cursor:pointer;transition:all .2s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+
+/* ── SECTION BAR ── */
+.sbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.stitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--sub)}
+.btn-sm{background:none;border:1px solid var(--border);color:var(--sub);
+  padding:5px 13px;border-radius:6px;font-size:11px;font-family:'Space Mono',monospace;
+  cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── GRID ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+
+/* ── CARD ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:18px;cursor:pointer;transition:all .22s;position:relative;overflow:hidden}
+.card::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity .22s;
+  background:radial-gradient(ellipse at 50% 0%,rgba(0,212,255,.06) 0%,transparent 60%)}
+.card:hover{border-color:rgba(0,212,255,.25);transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.card:hover::after{opacity:1}
+.card-stripe{position:absolute;top:0;left:0;right:0;height:2px;opacity:.7}
+.card.bull .card-stripe{background:var(--bull)}
+.card.bear .card-stripe{background:var(--bear)}
+.card.neutral .card-stripe{background:var(--neutral)}
+
+.c-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.c-sym{font-size:15px;font-weight:800;letter-spacing:-.3px}
+.c-name{font-size:10px;color:var(--sub);font-family:'Space Mono',monospace;margin-top:2px}
+.c-price{font-family:'Space Mono',monospace;font-size:17px;font-weight:700;text-align:right}
+.c-chg{font-family:'Space Mono',monospace;font-size:11px;text-align:right;margin-top:2px}
+.up{color:var(--bull)}.down{color:var(--bear)}
+
+.bias{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:5px;
+  font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:13px}
+.bias.bull{background:rgba(0,230,118,.1);color:var(--bull);border:1px solid rgba(0,230,118,.2)}
+.bias.bear{background:rgba(255,61,90,.1);color:var(--bear);border:1px solid rgba(255,61,90,.2)}
+.bias.neutral{background:rgba(255,171,0,.1);color:var(--neutral);border:1px solid rgba(255,171,0,.2)}
+
+.lsec{margin-bottom:12px}
+.lhead{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:var(--sub);margin-bottom:7px}
+.lrow{display:flex;justify-content:space-between;padding:4px 7px;border-radius:4px;margin-bottom:2px;
+  font-family:'Space Mono',monospace;font-size:10px}
+.lrow.r{background:rgba(255,61,90,.05)}.lrow.s{background:rgba(0,230,118,.05)}
+.lrow.f{background:rgba(0,212,255,.04)}.lrow.cur{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.lr{color:var(--bear)}.ls{color:var(--bull)}.lf{color:var(--accent)}.lc{color:var(--text);font-weight:700}
+.ll{color:var(--sub)}
+
+/* position bar */
+.pbar-wrap{margin-top:10px}
+.pbar-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--sub);
+  font-family:'Space Mono',monospace;margin-bottom:3px}
+.pbar{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.pbar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+
+.sma-row{display:flex;gap:8px;margin-top:8px}
+.sma-tag{font-size:9px;font-family:'Space Mono',monospace;padding:2px 7px;border-radius:3px;
+  background:var(--bg3);border:1px solid var(--border);color:var(--sub)}
+
+/* ── MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);
+  backdrop-filter:blur(10px);z-index:500;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  padding:28px;width:100%;max-width:680px;max-height:88vh;overflow-y:auto;
+  position:relative;animation:mIn .22s ease}
+@keyframes mIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+.modal-x{position:absolute;top:14px;right:18px;background:none;border:none;
+  color:var(--sub);font-size:22px;cursor:pointer;transition:color .2s}
+.modal-x:hover{color:var(--text)}
+.m-sym{font-size:26px;font-weight:800;margin-bottom:2px}
+.m-price{font-family:'Space Mono',monospace;font-size:20px;color:var(--accent);margin-bottom:18px}
+table.lv-table{width:100%;border-collapse:collapse;margin-bottom:16px}
+table.lv-table th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--sub);padding:6px 10px;border-bottom:1px solid var(--border);text-align:left}
+table.lv-table td{padding:7px 10px;font-family:'Space Mono',monospace;font-size:11px;
+  border-bottom:1px solid rgba(255,255,255,.02)}
+table.lv-table tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── ALARMS ── */
+.alarm-form{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+select,input[type=number],.t-input{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  padding:7px 11px;border-radius:7px;font-family:'Space Mono',monospace;font-size:11px;outline:none}
+select:focus,input[type=number]:focus,.t-input:focus{border-color:var(--accent)}
+input[type=number]{width:130px}
+.btn-primary{background:var(--accent);color:var(--bg);border:none;padding:7px 16px;
+  border-radius:7px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:opacity .2s}
+.btn-primary:hover{opacity:.85}
+.a-item{display:flex;align-items:center;gap:10px;background:var(--bg3);
+  border:1px solid var(--border);padding:9px 13px;border-radius:8px;
+  font-family:'Space Mono',monospace;font-size:11px;margin-bottom:7px}
+.a-item.triggered{border-color:rgba(255,171,0,.3);background:rgba(255,171,0,.04)}
+.a-item span:first-child{font-weight:700;min-width:70px}
+.a-spacer{flex:1}
+.btn-x{background:none;border:none;color:var(--sub);font-size:18px;cursor:pointer;transition:color .2s}
+.btn-x:hover{color:var(--bear)}
+
+/* ── HISTORY ── */
+.sig-row{display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);font-size:11px}
+.sig-t{font-family:'Space Mono',monospace;font-size:10px;color:var(--sub);min-width:95px}
+.sig-s{font-weight:700;min-width:70px}
+.sig-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700}
+.sig-badge.bull{background:rgba(0,230,118,.1);color:var(--bull)}
+.sig-badge.bear{background:rgba(255,61,90,.1);color:var(--bear)}
+.sig-d{color:var(--sub);flex:1}
+
+/* ── TELEGRAM ── */
+.tg-box{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:16px}
+.tg-ttl{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.tg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.tg-field label{display:block;font-size:9px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1.5px;color:var(--sub);margin-bottom:5px}
+.tg-input{width:100%}
+.tg-btns{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.tg-btn{background:var(--bg);border:1px solid var(--border);color:var(--text);
+  padding:6px 13px;border-radius:6px;font-family:'Space Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s}
+.tg-btn:hover{border-color:var(--accent);color:var(--accent)}
+.tg-log{background:var(--bg);border:1px solid var(--border);border-radius:7px;
+  padding:12px;font-family:'Space Mono',monospace;font-size:11px;
+  min-height:70px;max-height:150px;overflow-y:auto;line-height:1.8;color:var(--sub)}
+.log-ok{color:var(--bull)}.log-err{color:var(--bear)}.log-i{color:var(--accent)}
+
+/* ── API DOCS ── */
+.api-note{background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:16px;font-family:'Space Mono',monospace;font-size:11px;color:#8a9ab5;
+  line-height:1.9;overflow-x:auto;white-space:pre}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){main{padding:14px}header{padding:0 14px}.grid{grid-template-columns:1fr}.tg-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">BD<b>FİNANS Radar</b></div>
+  <div class="hbar">
+    <div id="serverStatus" class="server-status">⚙ Backend kontrol ediliyor...</div>
+    <div class="live-pill"><div class="live-dot"></div>CANLI</div>
+    <div class="ts" id="ts">--:--:--</div>
+  </div>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab active" onclick="tab('markets',this)">📊 Piyasalar</button>
+    <button class="tab" onclick="tab('alarms',this)">🔔 Alarmlar</button>
+    <button class="tab" onclick="tab('history',this)">📋 Sinyaller</button>
+    <button class="tab" onclick="tab('telegram',this)">✈️ Telegram</button>
+    <button class="tab" onclick="tab('api',this)">⚙️ API</button>
+  </div>
+
+  <!-- MARKETS -->
+  <div id="pane-markets" class="tab-pane active">
+    <div class="sbar">
+      <span class="stitle">13 Enstrüman</span>
+      <button class="btn-sm" onclick="refresh()"><span id="ri">↻</span> Yenile</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- ALARMS -->
+  <div id="pane-alarms" class="tab-pane">
+    <div class="sbar"><span class="stitle">Fiyat Alarmları</span></div>
+    <div class="alarm-form">
+      <select id="aSym"><option value="">Enstrüman</option></select>
+      <select id="aDir">
+        <option value="above">↑ Üzerine çıkarsa</option>
+        <option value="below">↓ Altına inerse</option>
+      </select>
+      <input type="number" id="aPrice" placeholder="Fiyat" step="any">
+      <button class="btn-primary" onclick="addAlarm()">+ Alarm Ekle</button>
+    </div>
+    <div id="alarmList"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="pane-history" class="tab-pane">
+    <div class="sbar">
+      <span class="stitle">Geçmiş Sinyaller</span>
+      <button class="btn-sm" onclick="clearSigs()">🗑 Temizle</button>
+    </div>
+    <div id="sigList"></div>
+  </div>
+
+  <!-- TELEGRAM -->
+  <div id="pane-telegram" class="tab-pane">
+    <div class="tg-box">
+      <div class="tg-ttl">✈️ Telegram Yapılandırması</div>
+      <div class="tg-grid">
+        <div class="tg-field"><label>Bot Token</label><input type="password" class="t-input tg-input" id="tgTok" placeholder="123456:ABC-DEF..."></div>
+        <div class="tg-field"><label>Chat ID</label><input type="text" class="t-input tg-input" id="tgCid" placeholder="-1001234567890"></div>
+      </div>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:13px;font-family:'Space Mono',monospace;line-height:1.9">
+        💡 Token → Telegram'da <b style="color:var(--accent)">@BotFather</b> → /newbot<br>
+        Chat ID → <b style="color:var(--accent)">@userinfobot</b>'a /start yaz
+      </div>
+      <div class="tg-btns">
+        <button class="tg-btn" onclick="tgSend('test')">✅ Test</button>
+        <button class="tg-btn" onclick="tgSend('bias')">🎯 Bias Özeti</button>
+        <button class="tg-btn" onclick="tgSend('full')">📊 Tam Rapor</button>
+        <button class="tg-btn" onclick="tgSend('alarms')">🔔 Alarmlar</button>
+      </div>
+      <div class="tg-log" id="tgLog">— Log —</div>
+    </div>
+  </div>
+
+  <!-- API -->
+  <div id="pane-api" class="tab-pane">
+    <div class="sbar"><span class="stitle">Backend API Endpointleri</span></div>
+    <div class="tg-box">
+      <div class="tg-ttl">⚙️ Python Backend → http://localhost:8000</div>
+      <pre class="api-note">GET  /api/prices          → Tüm enstrüman verileri
+GET  /api/prices/{sym}    → Tek enstrüman (örn: /api/prices/EURUSD)
+POST /api/refresh         → Manuel fiyat yenileme tetikle
+GET  /api/alarms          → Aktif alarmları listele
+POST /api/alarms          → Yeni alarm ekle
+          Body: {"sym":"EURUSD","direction":"above","price":1.09}
+DEL  /api/alarms/{id}     → Alarm sil
+GET  /api/signals         → Geçmiş sinyal listesi
+POST /api/telegram/send   → Telegram mesajı gönder
+          Body: {"token":"...","chat_id":"...","report_type":"full"}
+GET  /api/health          → Sistem durumu
+
+Kurulum:
+  cd backend
+  pip install -r requirements.txt
+  cp .env.example .env   # token ve chat_id gir
+  python main.py
+
+Sunucuya deploy (VPS):
+  nohup python main.py &gt; marketradar.log 2&gt;&amp;1 &amp;
+  # veya systemd servis olarak</pre>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="closeOverlay(event)">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal()">×</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────
+const API = 'http://localhost:8000/api';  // Backend URL
+
+const INSTRUMENTS = [
+  {sym:'XAUUSD',name:'Altın',category:'Emtia'},
+  {sym:'NASDAQ',name:'NASDAQ',category:'Endeks'},
+  {sym:'DAX',name:'DAX',category:'Endeks'},
+  {sym:'BTCUSD',name:'Bitcoin',category:'Kripto'},
+  {sym:'EURUSD',name:'EUR/USD',category:'Forex'},
+  {sym:'GBPUSD',name:'GBP/USD',category:'Forex'},
+  {sym:'USDJPY',name:'USD/JPY',category:'Forex'},
+  {sym:'EURJPY',name:'EUR/JPY',category:'Forex'},
+  {sym:'EURAUD',name:'EUR/AUD',category:'Forex'},
+  {sym:'GBPJPY',name:'GBP/JPY',category:'Forex'},
+  {sym:'USDCAD',name:'USD/CAD',category:'Forex'},
+  {sym:'EURCAD',name:'EUR/CAD',category:'Forex'},
+  {sym:'GBPCAD',name:'GBP/CAD',category:'Forex'},
+];
+
+const DECIMALS={USDJPY:3,EURJPY:3,GBPJPY:3,EURUSD:4,GBPUSD:4,EURAUD:4,USDCAD:4,EURCAD:4,GBPCAD:4,XAUUSD:2,NASDAQ:2,DAX:2,BTCUSD:1};
+const SEED={XAUUSD:3120.5,NASDAQ:21450,DAX:22100,BTCUSD:95400,EURUSD:1.0842,GBPUSD:1.2715,USDJPY:149.85,EURJPY:162.4,EURAUD:1.654,GBPJPY:190.55,USDCAD:1.421,EURCAD:1.5405,GBPCAD:1.8085};
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let cache={}, alarms=[], signals=[], backendOK=false;
+
+function fmt(sym,v){return v?(+v).toFixed(DECIMALS[sym]??4):'—'}
+
+// ── BACKEND FETCH ─────────────────────────────────────────────────────────
+async function apiFetch(path,opts){
+  try{
+    const r=await fetch(API+path,{timeout:5000,...opts});
+    if(!r.ok) throw new Error(r.status);
+    return r.json();
+  }catch{return null}
+}
+
+async function checkBackend(){
+  const h=await apiFetch('/health');
+  backendOK=!!h?.status;
+  const el=document.getElementById('serverStatus');
+  if(backendOK){el.textContent='✅ Backend aktif';el.className='server-status ok'}
+  else{el.textContent='⚡ Offline mod';el.className='server-status err'}
+  return backendOK;
+}
+
+async function loadPrices(){
+  if(backendOK){
+    const d=await apiFetch('/prices');
+    if(d?.data){
+      d.data.forEach(item=>cache[item.sym]=item);
+      document.getElementById('ts').textContent=new Date().toLocaleTimeString('tr-TR');
+      return;
+    }
+  }
+  // Fallback: simüle veri
+  INSTRUMENTS.forEach(inst=>{
+    const prev=cache[inst.sym]?.price||SEED[inst.sym];
+    const price=prev*(1+(Math.random()-.5)*.002);
+    const change=(Math.random()-.48)*1.2;
+    const atr=price*.007;
+    const h=price+atr*2.2, l=price-atr*2.2, diff=h-l;
+    const pivot=(h+l+price)/3;
+    cache[inst.sym]={
+      sym:inst.sym,name:inst.name,category:inst.category,
+      price,price_fmt:fmt(inst.sym,price),change:+change.toFixed(3),
+      sma20:+(price*.999).toFixed(4),sma50:+(price*.997).toFixed(4),
+      bias:change>0.15?'bull':change<-0.15?'bear':'neutral',
+      levels:{
+        R3:fmt(inst.sym,price+atr*2.5),R2:fmt(inst.sym,price+atr*1.6),R1:fmt(inst.sym,price+atr*.8),
+        S1:fmt(inst.sym,price-atr*.8),S2:fmt(inst.sym,price-atr*1.6),S3:fmt(inst.sym,price-atr*2.5),
+        pivot:fmt(inst.sym,pivot),
+        fib:{
+          '0%':fmt(inst.sym,l),'23.6%':fmt(inst.sym,l+diff*.236),
+          '38.2%':fmt(inst.sym,l+diff*.382),'50%':fmt(inst.sym,l+diff*.5),
+          '61.8%':fmt(inst.sym,l+diff*.618),'78.6%':fmt(inst.sym,l+diff*.786),
+          '100%':fmt(inst.sym,h)
+        }
+      }
+    };
+  });
+  document.getElementById('ts').textContent=new Date().toLocaleTimeString('tr-TR');
+}
+
+async function loadAlarms(){
+  if(backendOK){const d=await apiFetch('/alarms');if(d?.alarms)alarms=d.alarms}
+}
+async function loadSignals(){
+  if(backendOK){const d=await apiFetch('/signals');if(d?.signals)signals=d.signals}
+}
+
+// ── RENDER GRID ───────────────────────────────────────────────────────────
+function renderGrid(){
+  const g=document.getElementById('grid');
+  g.innerHTML=INSTRUMENTS.map(inst=>{
+    const d=cache[inst.sym];if(!d)return`<div class="card"><div class="c-sym">${inst.sym}</div><div style="color:var(--sub);font-size:11px;margin-top:8px">Yükleniyor...</div></div>`;
+    const {price,price_fmt,change,levels,bias,sma20,sma50}=d;
+    const s1=parseFloat(levels.S1),r1=parseFloat(levels.R1);
+    const pct=Math.max(0,Math.min(100,((price-s1)/(r1-s1))*100));
+    const bcol=bias==='bull'?'#00e676':bias==='bear'?'#ff3d5a':'#ffab00';
+    const bl=bias==='bull'?'▲ YÜKSELİŞ':bias==='bear'?'▼ DÜŞÜŞ':'● NÖTR';
+    const chgStr=(change>=0?'+':'')+change.toFixed(2)+'%';
+    const near=alarms.some(a=>a.sym===inst.sym&&!a.triggered&&Math.abs(parseFloat(a.price)-price)/price<.003);
+    return`<div class="card ${bias}" onclick="openModal('${inst.sym}')">
+      <div class="card-stripe"></div>
+      <div class="c-head">
+        <div><div class="c-sym">${inst.sym}</div><div class="c-name">${inst.name} · ${inst.category}</div></div>
+        <div><div class="c-price">${price_fmt}</div><div class="c-chg ${change>=0?'up':'down'}">${change>=0?'▲':'▼'} ${chgStr}</div></div>
+      </div>
+      <span class="bias ${bias}">${bl}</span>
+      <div class="lsec">
+        <div class="lhead">Diren&ccedil; / Destek</div>
+        <div class="lrow r"><span class="ll">R1</span><span class="lr">${levels.R1}</span></div>
+        <div class="lrow s"><span class="ll">R2</span><span class="lr">${levels.R2}</span></div>
+        <div class="lrow cur"><span class="ll">FİYAT</span><span class="lc">${price_fmt}</span></div>
+        <div class="lrow s"><span class="ll">S1</span><span class="ls">${levels.S1}</span></div>
+        <div class="lrow s"><span class="ll">S2</span><span class="ls">${levels.S2}</span></div>
+      </div>
+      <div class="lsec">
+        <div class="lhead">Fibonacci</div>
+        <div class="lrow f"><span class="ll">61.8%</span><span class="lf">${levels.fib['61.8%']}</span></div>
+        <div class="lrow f"><span class="ll">50%</span><span class="lf">${levels.fib['50%']}</span></div>
+        <div class="lrow f"><span class="ll">38.2%</span><span class="lf">${levels.fib['38.2%']}</span></div>
+      </div>
+      <div class="pbar-wrap">
+        <div class="pbar-labels"><span>S1 ${levels.S1}</span><span>R1 ${levels.R1}</span></div>
+        <div class="pbar"><div class="pbar-fill" style="width:${pct}%;background:${bcol}"></div></div>
+      </div>
+      <div class="sma-row">
+        <span class="sma-tag">SMA20: ${sma20}</span>
+        <span class="sma-tag">SMA50: ${sma50}</span>
+        ${near?'<span class="sma-tag" style="color:var(--neutral);border-color:rgba(255,171,0,.3)">⚡ Alarm yakın</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────
+function openModal(sym){
+  const d=cache[sym];if(!d)return;
+  const {price_fmt,change,levels,bias,sma20,sma50,name,category}=d;
+  const bl=bias==='bull'?'▲ YÜKSELİŞ BIASI':bias==='bear'?'▼ DÜŞÜŞ BIASI':'● NÖTR BIAS';
+  const price=d.price;
+  const fibRows=Object.entries(levels.fib).map(([k,v])=>{
+    const val=parseFloat(v),above=val>price;
+    const dist=((val-price)/price*100).toFixed(2);
+    return`<tr><td style="color:var(--sub)">${k}</td><td style="color:${above?'#ff3d5a':'#00e676'}">${v}</td><td style="color:${above?'#ff3d5a':'#00e676'}">${above?'+':''}${dist}%</td></tr>`;
+  }).join('');
+  document.getElementById('modalBody').innerHTML=`
+    <div class="m-sym">${sym}</div>
+    <div style="color:var(--sub);font-size:12px;font-family:'Space Mono',monospace;margin-bottom:6px">${name} · ${category}</div>
+    <div class="m-price">${price_fmt}</div>
+    <span class="bias ${bias}" style="margin-bottom:18px">${bl}</span>
+    <div style="margin-top:18px">
+      <div class="lhead" style="margin-bottom:8px">📍 Destek / Direnç</div>
+      <table class="lv-table">
+        <tr><th>Seviye</th><th>Fiyat</th><th>Uzaklık</th></tr>
+        ${['R3','R2','R1'].map(k=>`<tr><td style="color:var(--sub)">${k}</td><td style="color:#ff3d5a">${levels[k]}</td><td style="color:#ff3d5a">+${(((parseFloat(levels[k])-price)/price)*100).toFixed(2)}%</td></tr>`).join('')}
+        <tr><td style="color:var(--accent);font-weight:700">FİYAT</td><td style="color:var(--accent);font-weight:700">${price_fmt}</td><td>—</td></tr>
+        ${['S1','S2','S3'].map(k=>`<tr><td style="color:var(--sub)">${k}</td><td style="color:#00e676">${levels[k]}</td><td style="color:#00e676">-${(((price-parseFloat(levels[k]))/price)*100).toFixed(2)}%</td></tr>`).join('')}
+      </table>
+    </div>
+    <div style="margin-top:16px">
+      <div class="lhead" style="margin-bottom:8px">📐 Fibonacci Retracement</div>
+      <table class="lv-table"><tr><th>Oran</th><th>Fiyat</th><th>Uzaklık</th></tr>${fibRows}</table>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center;font-family:'Space Mono',monospace;font-size:11px">
+      <span style="color:var(--sub)">SMA20:</span><span>${sma20}</span>
+      <span style="color:var(--sub);margin-left:8px">SMA50:</span><span>${sma50}</span>
+    </div>
+    <button onclick="tgSendSingle('${sym}')" style="margin-top:14px;width:100%;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);color:var(--accent);padding:10px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;font-size:12px;transition:all .2s" onmouseover="this.style.background='rgba(0,212,255,.16)'" onmouseout="this.style.background='rgba(0,212,255,.08)'">
+      ✈️ Bu Enstrümanı Telegram'a Gönder
+    </button>`;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeOverlay(e){if(e.target===document.getElementById('overlay'))closeModal()}
+function closeModal(){document.getElementById('overlay').classList.remove('open')}
+
+// ── ALARMS ────────────────────────────────────────────────────────────────
+async function addAlarm(){
+  const sym=document.getElementById('aSym').value;
+  const dir=document.getElementById('aDir').value;
+  const price=parseFloat(document.getElementById('aPrice').value);
+  if(!sym||!price)return;
+
+  if(backendOK){
+    const res=await apiFetch('/alarms',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sym,direction:dir,price})});
+    if(res)alarms.push(res);
+  }else{
+    alarms.push({id:Date.now(),sym,direction:dir,price,triggered:false});
+  }
+  renderAlarms();
+  log(`⚡ Alarm eklendi: ${sym} ${dir==='above'?'↑':'↓'} ${price}`,'i');
+}
+
+async function delAlarm(id){
+  if(backendOK)await apiFetch('/alarms/'+id,{method:'DELETE'});
+  alarms=alarms.filter(a=>a.id!==id);
+  renderAlarms();
+}
+
+function renderAlarms(){
+  const el=document.getElementById('alarmList');
+  if(!alarms.length){el.innerHTML='<div style="color:var(--sub);text-align:center;padding:28px;font-family:Space Mono,monospace;font-size:11px">Alarm yok</div>';return}
+  el.innerHTML=alarms.map(a=>`<div class="a-item ${a.triggered?'triggered':''}">
+    <span>${a.sym}</span>
+    <span style="color:${a.direction==='above'?'#ff3d5a':'#00e676'}">${a.direction==='above'?'↑ üzerine':'↓ altına'}</span>
+    <span style="font-weight:700">${a.price}</span>
+    <div class="a-spacer"></div>
+    <span style="color:${a.triggered?'var(--neutral)':'var(--sub)'}">${a.triggered?'✅ Tetiklendi':'⏳ Bekliyor'}</span>
+    <button class="btn-x" onclick="delAlarm(${a.id})">×</button>
+  </div>`).join('');
+}
+
+// ── SIGNALS ───────────────────────────────────────────────────────────────
+function renderSignals(){
+  const el=document.getElementById('sigList');
+  if(!signals.length){el.innerHTML='<div style="color:var(--sub);text-align:center;padding:28px;font-family:Space Mono,monospace;font-size:11px">Sinyal yok</div>';return}
+  el.innerHTML=signals.map(s=>`<div class="sig-row">
+    <span class="sig-t">${s.date} ${s.time}</span>
+    <span class="sig-s">${s.sym}</span>
+    <span class="sig-badge ${s.type}">${s.type==='bull'?'▲ YÜKSELİŞ':'▼ DÜŞÜŞ'}</span>
+    <span class="sig-d">${s.desc}</span>
+  </div>`).join('');
+}
+
+async function clearSigs(){signals=[];renderSignals()}
+
+// ── TELEGRAM ──────────────────────────────────────────────────────────────
+function tgConfig(){return{token:document.getElementById('tgTok').value.trim(),chat_id:document.getElementById('tgCid').value.trim()}}
+function log(msg,type='i'){
+  const el=document.getElementById('tgLog');
+  const cls=type==='ok'?'log-ok':type==='err'?'log-err':'log-i';
+  el.innerHTML+=`<div class="${cls}">[${new Date().toLocaleTimeString('tr-TR')}] ${msg}</div>`;
+  el.scrollTop=el.scrollHeight;
+}
+
+async function tgSend(type){
+  const {token,chat_id}=tgConfig();
+  if(!token||!chat_id){log('❌ Token ve Chat ID gerekli','err');return}
+  log(`📤 Gönderiliyor: ${type}...`);
+  if(backendOK){
+    const r=await apiFetch('/telegram/send',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token,chat_id,report_type:type})});
+    if(r?.status==='ok'){log(`✅ ${type} gönderildi`,'ok');signals.unshift({time:new Date().toLocaleTimeString('tr-TR'),date:new Date().toLocaleDateString('tr-TR'),sym:'SYSTEM',type:'bull',desc:`Telegram: ${type}`});renderSignals()}
+    else log('❌ Gönderim başarısız','err');
+  }else{
+    // Direct browser send (fallback)
+    const msg=buildMsg(type);
+    const r=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id,text:msg,parse_mode:'Markdown'})});
+    const d=await r.json();
+    if(d.ok){log('✅ Gönderildi (direkt)','ok')}else{log('❌ '+d.description,'err')}
+  }
+}
+
+async function tgSendSingle(sym){
+  const {token,chat_id}=tgConfig();
+  if(!token||!chat_id){alert('Telegram sekmesinden token ve chat ID girin!');return}
+  if(backendOK){
+    await apiFetch('/telegram/send',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token,chat_id,report_type:'single',sym})});
+  }else{
+    const d=cache[sym];if(!d)return;
+    const msg=`📊 *${sym}*\n\n💰 \`${d.price_fmt}\` (${d.change>=0?'+':''}${d.change.toFixed(2)}%)\n📍 R1: ${d.levels.R1} | S1: ${d.levels.S1}\n📐 Fib 61.8%: ${d.levels.fib['61.8%']}`;
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id,text:msg,parse_mode:'Markdown'})});
+  }
+  log(`✅ ${sym} gönderildi`,'ok');
+}
+
+function buildMsg(type){
+  const now=new Date().toLocaleString('tr-TR');
+  if(type==='test')return`✅ *MarketRadar Test*\n\nBağlantı OK ⚡\n_${now}_`;
+  if(type==='bias'){
+    let s=`📊 *BIAS ÖZETİ*\n_${now}_\n\n`;
+    INSTRUMENTS.forEach(i=>{const d=cache[i.sym];if(!d)return;const ic=d.bias==='bull'?'🟢':d.bias==='bear'?'🔴':'🟡';s+=`${ic} *${i.sym}*: \`${d.price_fmt}\`\n`;});
+    return s;
+  }
+  return`📈 *RAPOR*\n_${now}_`;
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────
+function tab(name,el){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  el.classList.add('active');
+  if(name==='alarms')renderAlarms();
+  if(name==='history')renderSignals();
+}
+
+// ── REFRESH ───────────────────────────────────────────────────────────────
+async function refresh(){
+  const ri=document.getElementById('ri');
+  ri.style.display='inline-block';ri.style.animation='spin .8s linear infinite';
+  if(backendOK)await apiFetch('/refresh',{method:'POST'});
+  await new Promise(r=>setTimeout(r,1200));
+  await loadPrices();
+  await loadAlarms();
+  renderGrid();
+  ri.style.animation='';
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+async function init(){
+  // Seed with fallback instantly
+  await loadPrices();
+  renderGrid();
+
+  // Populate alarm select
+  const sel=document.getElementById('aSym');
+  INSTRUMENTS.forEach(i=>{const o=document.createElement('option');o.value=i.sym;o.text=`${i.sym} — ${i.name}`;sel.appendChild(o)});
+
+  // Check backend
+  await checkBackend();
+
+  // If backend OK, load real data
+  if(backendOK){
+    await loadPrices();
+    await loadAlarms();
+    await loadSignals();
+    renderGrid();
+    renderAlarms();
+    renderSignals();
+  }
+
+  // Auto refresh every 30s
+  setInterval(async()=>{
+    await checkBackend();
+    await loadPrices();
+    renderGrid();
+  },30000);
+}
+
+const style=document.createElement('style');
+style.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
+document.head.appendChild(style);
+
+init();
+</script>
+</body>
+</html>
